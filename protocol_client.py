@@ -78,6 +78,7 @@ def createServer(listen_port, listen_on):
         decrypted = decrypt(priv, byte)
         print("Decrypted message:", decrypted)
         c.send(b'A')
+        
 def decrypt(priv,byte):
     message = byte.decode('ASCII')
     decrypted = ""
@@ -135,18 +136,27 @@ def createClient(server_host, server_port):
 
         #create key from data
     pubKey = (e,n)
-    
     while(True):
         message = input("Enter a message: ")
-        encrypted = ""
-        for c in message:
-            encrypted += "{0:04x}".format(apply_key(pubKey, ord(c)))
+        encrypt(pubKey, message,tcp_socket)
+        
+
+def encrypt(pubKey, message, tcp_socket):
+    encrypted = ""
+    for c in message:
+        encrypted += "{0:04x}".format(apply_key(pubKey, ord(c)))
+    size = encrypted.encode().__sizeof__()
+    tcp_socket.send(int.to_bytes(size, 2, 'big'))
+    tcp_socket.send(encrypted.encode())
+    tcp_socket.send(b'\r\n')
+        
+def encryptPass(pubKey,password, tcp_socket):
+    padded = str(password).zfill(20)
+    for c in padded:
+        encrypted += "{0:04x}".format(apply_key(pubKey, ord(c)))
         size = encrypted.encode().__sizeof__()
-        tcp_socket.send(int.to_bytes(size, 2, 'big'))
         tcp_socket.send(encrypted.encode())
         tcp_socket.send(b'\r\n')
-
-
 
 
 def get_public_key(key_pair):
