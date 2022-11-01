@@ -154,9 +154,9 @@ def encryptPass(pubKey,password, tcp_socket):
     padded = str(password).zfill(20)
     for c in padded:
         encrypted += "{0:04x}".format(apply_key(pubKey, ord(c)))
-        size = encrypted.encode().__sizeof__()
-        tcp_socket.send(encrypted.encode())
-        tcp_socket.send(b'\r\n')
+    size = encrypted.encode().__sizeof__()
+    tcp_socket.send(encrypted.encode())
+    tcp_socket.send(b'\r\n')
 
 
 def get_public_key(key_pair):
