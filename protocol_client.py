@@ -75,22 +75,26 @@ def createServer(listen_port, listen_on):
         while not byte.__contains__(b'\r\n'):
             byte += c.recv(1)
         byte = byte[:-2]
-        message = byte.decode('ASCII')
-        decrypted = ""
-        for i in range(0, len(message), 4):
-            enc_string = message[i: i + 4]
-            enc = int(enc_string, 16)
-            dec = apply_key(priv, enc)
-            if dec >= 0 and dec < 256:
-                decrypted += chr(dec)
-            else:
-                print("Warning: Could not decode encrypted entity: " + enc_string)
-                print("         decrypted as: " + str(dec) + " which is out of range.")
-                print("         inserting _ at position of this character")
-                message += "_"
+        decrypted = decrypt(priv, byte)
         print("Decrypted message:", decrypted)
         c.send(b'A')
-
+def decrypt(priv,byte):
+    message = byte.decode('ASCII')
+    decrypted = ""
+    for i in range(0, len(message), 4):
+        enc_string = message[i: i + 4]
+        enc = int(enc_string, 16)
+        dec = apply_key(priv, enc)
+        if dec >= 0 and dec < 256:
+            decrypted += chr(dec)
+        else:
+            print("Warning: Could not decode encrypted entity: " + enc_string)
+            print("         decrypted as: " +
+                    str(dec) + " which is out of range.")
+            print("         inserting _ at position of this character")
+            message += "_"
+    return decrypted
+    
 def createClient(server_host, server_port):
     """
     creates a connection to a server
@@ -109,7 +113,7 @@ def createClient(server_host, server_port):
     receive a b'A' and then close the connection
     """
     action = input(
-        "Enter a password"
+        "Enter a password (max 10 characters)"
     )
     #create socket
     global encrypted
@@ -131,6 +135,7 @@ def createClient(server_host, server_port):
 
         #create key from data
     pubKey = (e,n)
+    
     while(True):
         message = input("Enter a message: ")
         encrypted = ""
