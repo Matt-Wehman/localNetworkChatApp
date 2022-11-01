@@ -42,44 +42,41 @@ def createServer(listen_port, listen_on):
     action = input (
             "Create a password\n"
         )
+    print('tcp_receive (server): listen_port={0}'.format(listen_port))
+            #create socket and listen for connection
+    address = (listen_on, listen_port)
+    s = socket(AF_INET, SOCK_STREAM)
+    s.bind(address)
+    s.listen(5)
+    c, addr = s.accept()
+    print('got connection from addr', address)
+    #create keys
+    key_pair = create_keys()
+    e,d,n = key_pair
+    pub = get_public_key(key_pair)
+    print("Pub key: " + str(pub))
+    priv = get_private_key(key_pair)
+    #send modulus
+    m = (n.bit_length() + 7) // 8
+    mb = int.to_bytes(m,2,'big')
+    c.send(mb)
+    c.send(int.to_bytes(n,m,'big'))
+    c.send(b'\r\n')
+    #send e
+    m = (e.bit_length() + 7) // 8
+    mb = int.to_bytes(m, 2, 'big')
+    c.send(mb)
+    c.send(int.to_bytes(e,m,"big"))
+    c.send(b'\r\n')
     while(True):
-        print('tcp_receive (server): listen_port={0}'.format(listen_port))
-        #create socket and listen for connection
-        address = (listen_on, listen_port)
-        s = socket(AF_INET, SOCK_STREAM)
-        s.bind(address)
-        s.listen(5)
-        c, addr = s.accept()
-        print('got connection from addr', address)
-        #create keys
-        key_pair = create_keys()
-        e,d,n = key_pair
-        pub = get_public_key(key_pair)
-        print("Pub key: " + str(pub))
-        priv = get_private_key(key_pair)
-        #send modulus
-        m = (n.bit_length() + 7) // 8
-        mb = int.to_bytes(m,2,'big')
-        c.send(mb)
-        c.send(int.to_bytes(n,m,'big'))
-        c.send(b'\r\n')
-        #send e
-        m = (e.bit_length() + 7) // 8
-        mb = int.to_bytes(m, 2, 'big')
-        c.send(mb)
-        c.send(int.to_bytes(e,m,"big"))
-        c.send(b'\r\n')
         #recieve message
         m = c.recv(2)
-        print("Bruh:" + str(m))
         byte = b''
         while not byte.__contains__(b'\r\n'):
             byte += c.recv(1)
         byte = byte[:-2]
         message = byte.decode('ASCII')
-        print("Encrypted: " + str(message))
         decrypted = ""
-        print("Priv: "+ str(priv))
         for i in range(0, len(message), 4):
             enc_string = message[i: i + 4]
             enc = int(enc_string, 16)
@@ -114,36 +111,33 @@ def createClient(server_host, server_port):
     action = input(
         "Enter a password"
     )
-    while(True):
     #create socket
-        global encrypted
-        print('tcp_send: dst_host="{0}", dst_port={1}'.format(server_host, server_port))
-        tcp_socket = socket(AF_INET, SOCK_STREAM)
-        tcp_socket.connect((server_port, server_host))
+    global encrypted
+    print('tcp_send: dst_host="{0}", dst_port={1}'.format(server_host, server_port))
+    tcp_socket = socket(AF_INET, SOCK_STREAM)
+    tcp_socket.connect((server_port, server_host))
         
         #receive public mod
-        m = tcp_socket.recv(2)
-        D = tcp_socket.recv(int.from_bytes(m,'big'))
-        n = int.from_bytes(D,'big')
-        CRLF = tcp_socket.recv(2)
+    m = tcp_socket.recv(2)
+    D = tcp_socket.recv(int.from_bytes(m,'big'))
+    n = int.from_bytes(D,'big')
+    CRLF = tcp_socket.recv(2)
 
         #receive e
-        m = tcp_socket.recv(2)
-        D = tcp_socket.recv(int.from_bytes(m, 'big'))
-        e = int.from_bytes(D, 'big')
-        CRLF = tcp_socket.recv(2)
+    m = tcp_socket.recv(2)
+    D = tcp_socket.recv(int.from_bytes(m, 'big'))
+    e = int.from_bytes(D, 'big')
+    CRLF = tcp_socket.recv(2)
 
         #create key from data
-        pubKey = (e,n)
-        print("Pub key: " + str(pubKey))
+    pubKey = (e,n)
+    while(True):
         message = input("Enter a message: ")
         encrypted = ""
         for c in message:
             encrypted += "{0:04x}".format(apply_key(pubKey, ord(c)))
         size = encrypted.encode().__sizeof__()
-        print("Size: " + str(size))
         tcp_socket.send(int.to_bytes(size, 2, 'big'))
-        print("Encrypted: " + str(encrypted))
         tcp_socket.send(encrypted.encode())
         tcp_socket.send(b'\r\n')
 
