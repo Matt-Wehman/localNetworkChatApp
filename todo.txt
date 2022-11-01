@@ -1,0 +1,7 @@
+Components: 
+TCP
+RSA Encrpyt
+Password protected
+Normal image tras
+Image to ASCII image -> send
+GUI
