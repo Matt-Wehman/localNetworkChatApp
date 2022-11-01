@@ -1,7 +1,17 @@
 Components: 
 TCP
+    Receiving data of a preknown length (think of the block size in tftp).
+    Known length (think of the body of http when content length is defined).
+    Receiving data of unknown length (for example the body of http in chunking or the number of headers in http or the filename length in tftp).
+
 RSA Encrpyt
+    Backend
+
 Password protected
-Normal image tras
+    Server sets password, client can not send message untill the correct password is entered
+
 Image to ASCII image -> send
+    Use asciiImage.py to convert image on client, send, show on GUI
+
 GUI
+    Only needs to show ascii art, font size 1-2, pane dimentions are image dimentions 
