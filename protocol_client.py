@@ -39,11 +39,11 @@ def createServer(listen_port, listen_on):
     decrypt and print that message
     send a b'A' then close the connection
     """
-    action = input (
+    password = input (
             "Create a password\n"
         )
-    print('tcp_receive (server): listen_port={0}'.format(listen_port))
             #create socket and listen for connection
+    paddedPass = password.zfill(20)
     address = (listen_on, listen_port)
     s = socket(AF_INET, SOCK_STREAM)
     s.bind(address)
@@ -68,6 +68,17 @@ def createServer(listen_port, listen_on):
     c.send(mb)
     c.send(int.to_bytes(e,m,"big"))
     c.send(b'\r\n')
+    
+    while(True):
+        guess = b''
+        for x in range(20):
+            guess += c.recv(4)
+        if decrypt(priv,guess) != paddedPass:
+            c.send(b'F')
+        else:
+            c.send(b'A')
+            break
+        
     while(True):
         #recieve message
         m = c.recv(2)
@@ -113,11 +124,16 @@ def createClient(server_host, server_port):
     Send '\r\n'
     receive a b'A' and then close the connection
     """
-    action = input(
-        "Enter a password (max 10 characters)"
-    )
+    password = ""
+    while(True):
+        password = input(
+        "Enter a password (max 10 characters):\n"
+        )
+        if len(password) > 10:
+            print("password is too long")
+        else:
+            break
     #create socket
-    global encrypted
     print('tcp_send: dst_host="{0}", dst_port={1}'.format(server_host, server_port))
     tcp_socket = socket(AF_INET, SOCK_STREAM)
     tcp_socket.connect((server_port, server_host))
@@ -133,9 +149,19 @@ def createClient(server_host, server_port):
     D = tcp_socket.recv(int.from_bytes(m, 'big'))
     e = int.from_bytes(D, 'big')
     CRLF = tcp_socket.recv(2)
-
         #create key from data
     pubKey = (e,n)
+    encryptPass(pubKey,password,tcp_socket)
+    while(True):
+        response = tcp_socket.recv(1)
+        if response != b'A':
+            password = input(
+            "Wrong Password Try Again: \n"
+            )
+            encryptPass(pubKey,password,tcp_socket)
+        else:
+            break
+    
     while(True):
         message = input("Enter a message: ")
         encrypt(pubKey, message,tcp_socket)
@@ -152,11 +178,10 @@ def encrypt(pubKey, message, tcp_socket):
         
 def encryptPass(pubKey,password, tcp_socket):
     padded = str(password).zfill(20)
+    encrypted = ""
     for c in padded:
         encrypted += "{0:04x}".format(apply_key(pubKey, ord(c)))
-    size = encrypted.encode().__sizeof__()
-    tcp_socket.send(encrypted.encode())
-    tcp_socket.send(b'\r\n')
+    tcp_socket.sendall(encrypted.encode())
 
 
 def get_public_key(key_pair):
