@@ -34,11 +34,40 @@ def decrypt(priv,byte):
             message += "_"
     return decrypted
 
-def sendKeys(key):
-    pass
+def sendKey(c):
+    key_pair = create_keys()
+    e,d,n = key_pair
+    pub = get_public_key(key_pair)
+    e,n = pub
+    #send modulus
+    m = (n.bit_length() + 7) // 8
+    mb = int.to_bytes(m,2,'big')
+    c.send(mb)
+    c.send(int.to_bytes(n,m,'big'))
+    c.send(b'\r\n')
+    #send e
+    m = (e.bit_length() + 7) // 8
+    mb = int.to_bytes(m, 2, 'big')
+    c.send(mb)
+    c.send(int.to_bytes(e,m,"big"))
+    c.send(b'\r\n')
+    
+    return get_private_key(key_pair)
 
-def recvKey(key)
+def recvKey(tcp_socket):
+        #receive public mod
+    m = tcp_socket.recv(2)
+    D = tcp_socket.recv(int.from_bytes(m,'big'))
+    n = int.from_bytes(D,'big')
+    CRLF = tcp_socket.recv(2)
 
+        #receive e
+    m = tcp_socket.recv(2)
+    D = tcp_socket.recv(int.from_bytes(m, 'big'))
+    e = int.from_bytes(D, 'big')
+    CRLF = tcp_socket.recv(2)
+    
+    return (e,n)
 
 def get_public_key(key_pair):
     """

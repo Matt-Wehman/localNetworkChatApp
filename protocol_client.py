@@ -42,26 +42,18 @@ def createClient(server_host, server_port):
         else:
             break
     #create socket
-    print('tcp_send: dst_host="{0}", dst_port={1}'.format(server_host, server_port))
     global tcp_socket
     tcp_socket = socket(AF_INET, SOCK_STREAM)
     tcp_socket.connect((server_port, server_host))
     reciever = threading.Thread(target = recieveMessages)
     sender = threading.Thread(target = sendMessages)
-        #receive public mod
-    m = tcp_socket.recv(2)
-    D = tcp_socket.recv(int.from_bytes(m,'big'))
-    n = int.from_bytes(D,'big')
-    CRLF = tcp_socket.recv(2)
-
-        #receive e
-    m = tcp_socket.recv(2)
-    D = tcp_socket.recv(int.from_bytes(m, 'big'))
-    e = int.from_bytes(D, 'big')
-    CRLF = tcp_socket.recv(2)
-        #create key from data
+    
+     #create key from data
+    global priv
+    priv = rsaFunctions.sendKey(tcp_socket)
+    e, n = rsaFunctions.recvKey(tcp_socket)
     global pubKey
-    pubKey = (e,n)
+    pubKey = (e,n)   
     rsaFunctions.encryptPass(pubKey,password,tcp_socket)
     while(True):
         response = tcp_socket.recv(1)
@@ -72,6 +64,26 @@ def createClient(server_host, server_port):
             rsaFunctions.encryptPass(pubKey,password,tcp_socket)
         else:
             break
+        
+        
+    global serverName    
+    byte = b''
+    while not byte.__contains__(b'\r\n'):
+        byte += tcp_socket.recv(1)
+    byte = byte[:-2]
+    serverName = byte.decode("ascii")
+    print("\n")
+    print("You have entered " + serverName +"'s server!")
+    
+    
+    global name
+    
+    name = input("Enter your name: ")
+    tcp_socket.send(name.encode("ascii"))
+    tcp_socket.send(b'\r\n')
+    
+    
+    
     
     reciever = threading.Thread(target=recieveMessages)
     sender = threading.Thread(target= sendMessages)
@@ -80,16 +92,29 @@ def createClient(server_host, server_port):
     sender.start()
     
 def sendMessages():
+    print("\n")
+    print("You can now enter messages!" +"\n")
     while(True):
-        message = input("Enter a message: ")
+        message = input("")
         if len(message) >= 1:
             rsaFunctions.encrypt(pubKey, message,tcp_socket)
             
 
 def recieveMessages():
     while(True):
-        message = tcp_socket.recv(2048).decode("ascii")
-        print(message)
+        data = tcp_socket.recv(2)
+        if data:
+            while(True):
+                #recieve message
+                byte = b''
+                while not byte.__contains__(b'\r\n'):
+                    byte += tcp_socket.recv(1)
+                byte = byte[:-2]
+                decrypted = rsaFunctions.decrypt(priv, byte)
+                print("\n")
+                print("             " + serverName + ": " + str(decrypted) + "\n")
+                data = b''
+                break
 
 if __name__ == "__main__":
     main()

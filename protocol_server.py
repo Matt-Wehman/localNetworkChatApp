@@ -30,9 +30,12 @@ def createServer(listen_port, listen_on):
     global lock;
     lock = threading.Lock()
     password = input (
-            "Create a password\n"
+            "Create a password:\n"
         )
+    global name
+    name = input("Enter your name: \n")
             #create socket and listen for connection
+    print("Waiting for other users " + "\n")
     paddedPass = password.zfill(20)
     address = (listen_on, listen_port)
     s = socket(AF_INET, SOCK_STREAM)
@@ -40,29 +43,16 @@ def createServer(listen_port, listen_on):
     s.listen(5)
     global c, addr;
     c, addr = s.accept()
-    print('got connection from addr', address)
     #create keys
-    key_pair = rsaFunctions.create_keys()
-    e,d,n = key_pair
-    pub = rsaFunctions.get_public_key(key_pair)
-    print("Pub key: " + str(pub))
-    global priv
-    priv = rsaFunctions.get_private_key(key_pair)
-    #send modulus
-    m = (n.bit_length() + 7) // 8
-    mb = int.to_bytes(m,2,'big')
-    c.send(mb)
-    c.send(int.to_bytes(n,m,'big'))
-    c.send(b'\r\n')
-    #send e
-    m = (e.bit_length() + 7) // 8
-    mb = int.to_bytes(m, 2, 'big')
-    c.send(mb)
-    c.send(int.to_bytes(e,m,"big"))
-    c.send(b'\r\n')
     
+    global priv
+    priv = rsaFunctions.sendKey(c)
+    e, n = rsaFunctions.recvKey(c)
+    global pubKey
+    pubKey = (e,n)    
     reciever = threading.Thread(target = recieveMessages)
     sender = threading.Thread(target = sendMessages)
+    
     
     while(True):
         guess = b''
@@ -74,16 +64,28 @@ def createServer(listen_port, listen_on):
             c.send(b'A')
             break
         
+    c.send(name.encode("ascii"))
+    c.send(b'\r\n')
+        
+    byte = b''
+    while not byte.__contains__(b'\r\n'):
+        byte += c.recv(1)
+    byte = byte[:-2]
+    name = byte.decode("ascii")
+    print(name + " has joined the server!")
+    
+    
     reciever.start()
     sender.start()
     
 
 def sendMessages():
-    print("Send a message: ")
+    print("\n")
+    print("You can now enter messages!")
     while(True):
-        message = input()
+        message = input("")
         if len(message) >= 1:
-            c.send(message.encode("ascii"))
+            rsaFunctions.encrypt(pubKey, message,c)
 
 def recieveMessages():
     while(True):
@@ -97,7 +99,7 @@ def recieveMessages():
                 byte = byte[:-2]
                 decrypted = rsaFunctions.decrypt(priv, byte)
                 print("\n")
-                print("             Client: " + str(decrypted) + "\n")
+                print("             " + name + ": " + str(decrypted) + "\n")
                 data = b''
                 break
     
