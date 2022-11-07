@@ -1,5 +1,6 @@
 import math
 import random
+import aspose.words as aw 
 
 def encrypt(pubKey, message, tcp_socket):
     encrypted = ""

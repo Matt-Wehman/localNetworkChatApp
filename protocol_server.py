@@ -74,7 +74,6 @@ def createServer(listen_port, listen_on):
     name = byte.decode("ascii")
     print(name + " has joined the server!")
     
-    
     reciever.start()
     sender.start()
     

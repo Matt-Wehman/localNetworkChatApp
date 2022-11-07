@@ -83,8 +83,6 @@ def createClient(server_host, server_port):
     tcp_socket.send(b'\r\n')
     
     
-    
-    
     reciever = threading.Thread(target=recieveMessages)
     sender = threading.Thread(target= sendMessages)
     
