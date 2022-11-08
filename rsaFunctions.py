@@ -1,13 +1,15 @@
 import math
 import random
 import aspose.words as aw 
+import os
+import io
+import PIL.Image as Image
 
 def encrypt(pubKey, message, tcp_socket):
     encrypted = ""
     for c in message:
         encrypted += "{0:04x}".format(apply_key(pubKey, ord(c)))
     size = encrypted.encode().__sizeof__()
-    tcp_socket.send(int.to_bytes(size, 2, 'big'))
     tcp_socket.send(encrypted.encode())
     tcp_socket.send(b'\r\n')
         
@@ -17,6 +19,11 @@ def encryptPass(pubKey,password, tcp_socket):
     for c in padded:
         encrypted += "{0:04x}".format(apply_key(pubKey, ord(c)))
     tcp_socket.sendall(encrypted.encode())
+    
+def readimage(path):
+    count = os.stat(path).st_size / 2
+    with open(path, "rb") as f:
+        return bytearray(f.read())
     
 def decrypt(priv,byte):
     message = byte.decode('ASCII')
@@ -139,7 +146,6 @@ def generate_primes(l, h):
         if prime:
             primes.append(x)
     return primes
-
 
 primes = generate_primes(100, 254)
 

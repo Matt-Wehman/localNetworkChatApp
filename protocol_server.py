@@ -3,6 +3,12 @@ import math
 import threading
 from socket import *
 import rsaFunctions
+import os
+import io
+import PIL.Image as Image
+from PIL import ImageFile
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 PUBLIC_EXPONENT = 17;
 SERVER_HOST = 12100
 SERVER_PORT = "localhost"
@@ -88,18 +94,30 @@ def sendMessages():
 
 def recieveMessages():
     while(True):
-        data = c.recv(2)
-        if data:
+        types = c.recv(1)
+        data = b''
+        if(types):
             while(True):
-                #recieve message
-                byte = b''
-                while not byte.__contains__(b'\r\n'):
-                    byte += c.recv(1)
-                byte = byte[:-2]
-                decrypted = rsaFunctions.decrypt(priv, byte)
-                print("\n")
-                print("             " + name + ": " + str(decrypted) + "\n")
-                data = b''
-                break
+                while not types.__contains__(b'\r\n'):
+                    types += c.recv(1)
+                if types == b'image\r\n':
+                    while not data.__contains__(b'\r\n\r\n'):
+                        data += c.recv(10)
+                    data = data[:-4]
+                    f = open("picof.png","wb")
+                    f.write(data)
+                    f.close()
+                elif types == b'message\r\n':
+                        #recieve message
+                        byte = b''
+                        while not byte.__contains__(b'\r\n'):
+                            byte += c.recv(1)
+                        byte = byte[:-2]
+                        decrypted = rsaFunctions.decrypt(priv, byte)
+                        print("\n")
+                        print("             " + name + ": " + str(decrypted) + "\n")
+                        data = b''
+                        break
     
+        
         

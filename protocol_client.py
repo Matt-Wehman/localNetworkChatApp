@@ -1,12 +1,18 @@
-import random
-import math
+
 import threading
 from socket import *
 import rsaFunctions
 PUBLIC_EXPONENT = 17;
 SERVER_HOST = 12100
 SERVER_PORT = "localhost"
+import os
+import io
+import PySimpleGUI as sg
 global lock
+import PIL.Image as Image
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
 lock = threading.Lock()
 
 def main():
@@ -94,8 +100,21 @@ def sendMessages():
     print("You can now enter messages!" +"\n")
     while(True):
         message = input("")
+        initial = "";
         if len(message) >= 1:
-            rsaFunctions.encrypt(pubKey, message,tcp_socket)
+            if(len(message) >= 6):
+                for x in range(6):
+                    initial += message[x]
+                if(initial == "/image"):
+                    print("WORKING POG")
+                    f = open(r"C:\Users\wehmanm\OneDrive - Milwaukee School of Engineering\Desktop\NP final\final-protocol\DirectSupply.png", "rb").read()
+                    tcp_socket.sendall(b'image\r\n' + f + b'\r\n\r\n')
+                else:
+                    tcp_socket.send(b'message\r\n')
+                    rsaFunctions.encrypt(pubKey, message,tcp_socket)
+            else:
+                tcp_socket.send(b'message\r\n')
+                rsaFunctions.encrypt(pubKey, message,tcp_socket)
             
 
 def recieveMessages():
