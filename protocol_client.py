@@ -10,7 +10,7 @@ import io
 import PySimpleGUI as sg
 global lock
 import PIL.Image as Image
-from PIL import ImageFile
+from PIL import ImageFile, ImageTk
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 lock = threading.Lock()
@@ -132,6 +132,14 @@ def recieveMessages():
                     f = open("picof.png","wb")
                     f.write(data)
                     f.close()
+                    im = Image.open("picof.png")
+                    layout = [
+                        [sg.Image(key='-IMAGE-', size=(im.width,im.height))],
+                    ]
+                    window = sg.Window("epic", layout, margins=(0, 0), finalize=True)
+                    image = ImageTk.PhotoImage(image=im)
+                    window['-IMAGE-'].update(data=image)
+                    window.read()
                 elif types == b'message\r\n':
                         #recieve message
                         byte = b''
@@ -140,7 +148,7 @@ def recieveMessages():
                         byte = byte[:-2]
                         decrypted = rsaFunctions.decrypt(priv, byte)
                         print("\n")
-                        print("             " + serverName + ": " + str(decrypted) + "\n")
+                        print("             " + name + ": " + str(decrypted) + "\n")
                         data = b''
                         break
 
