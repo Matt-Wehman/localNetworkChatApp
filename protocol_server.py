@@ -2,11 +2,13 @@ import random
 import math
 import threading
 from socket import *
+from tkinter.tix import IMAGETEXT
 import rsaFunctions
 import os
 import io
 import PIL.Image as Image
-from PIL import ImageFile
+from PIL import ImageFile, ImageTk
+import PySimpleGUI as sg
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 PUBLIC_EXPONENT = 17;
@@ -86,11 +88,23 @@ def createServer(listen_port, listen_on):
 
 def sendMessages():
     print("\n")
-    print("You can now enter messages!")
+    print("You can now enter messages!" +"\n")
     while(True):
         message = input("")
+        initial = "";
         if len(message) >= 1:
-            rsaFunctions.encrypt(pubKey, message,c)
+            if(len(message) >= 6):
+                for x in range(6):
+                    initial += message[x]
+                if(initial == "/image"):
+                    f = open(r"C:\Users\wehmanm\OneDrive - Milwaukee School of Engineering\Desktop\NP final\final-protocol\DirectSupply.png", "rb").read()
+                    c.sendall(b'image\r\n' + f + b'\r\n\r\n')
+                else:
+                    c.send(b'message\r\n')
+                    rsaFunctions.encrypt(pubKey, message,c)
+            else:
+                c.send(b'message\r\n')
+                rsaFunctions.encrypt(pubKey, message,c)
 
 def recieveMessages():
     while(True):
@@ -107,6 +121,14 @@ def recieveMessages():
                     f = open("picof.png","wb")
                     f.write(data)
                     f.close()
+                    im = Image.open("picof.png")
+                    layout = [
+                        [sg.Image(key='-IMAGE-', size=(im.width,im.height))],
+                    ]
+                    window = sg.Window("epic", layout, margins=(0, 0), finalize=True)
+                    image = ImageTk.PhotoImage(image=im)
+                    window['-IMAGE-'].update(data=image)
+                    window.read()
                 elif types == b'message\r\n':
                         #recieve message
                         byte = b''
