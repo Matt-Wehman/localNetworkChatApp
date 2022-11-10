@@ -2,6 +2,7 @@
 import threading
 from socket import *
 import rsaFunctions
+import guiControls
 PUBLIC_EXPONENT = 17;
 SERVER_HOST = 12100
 SERVER_PORT = "localhost"
@@ -10,6 +11,7 @@ import io
 import PySimpleGUI as sg
 global lock
 import PIL.Image as Image
+import time;
 from PIL import ImageFile, ImageTk
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -38,16 +40,19 @@ def createClient(server_host, server_port):
     receive a b'A' and then close the connection
     """
     
-    password = ""
-    while(True):
-        password = input(
-        "Enter a password (max 10 characters):\n"
-        )
-        if len(password) > 10:
-            print("password is too long")
-        else:
-            break
+    # password = ""
+    # while(True):
+    #     password = input(
+    #     "Enter a password (max 10 characters):\n"
+    #     )
+    #     if len(password) > 10:
+    #         print("password is too long")
+    #     else:
+    #         break
     #create socket
+    password = guiControls.startClientGUI()
+    
+    # global tcp_socket
     global tcp_socket
     tcp_socket = socket(AF_INET, SOCK_STREAM)
     tcp_socket.connect((server_port, server_host))
@@ -60,13 +65,14 @@ def createClient(server_host, server_port):
     e, n = rsaFunctions.recvKey(tcp_socket)
     global pubKey
     pubKey = (e,n)   
+    
+    
     rsaFunctions.encryptPass(pubKey,password,tcp_socket)
+    
     while(True):
         response = tcp_socket.recv(1)
         if response != b'A':
-            password = input(
-            "Wrong Password Try Again: \n"
-            )
+            password = guiControls.wrongPasswordGUI()
             rsaFunctions.encryptPass(pubKey,password,tcp_socket)
         else:
             break
@@ -83,23 +89,78 @@ def createClient(server_host, server_port):
     
     
     global name
-    
-    name = input("Enter your name: ")
+    name = guiControls.clientNameGUI()
     tcp_socket.send(name.encode("ascii"))
     tcp_socket.send(b'\r\n')
-    
+    # guiControls.createGUI(name, serverName, tcp_socket)
     
     reciever = threading.Thread(target=recieveMessages)
-    sender = threading.Thread(target= sendMessages)
-    
+    layout = [
+        [sg.Titlebar("Chat Client")],
+        [
+            sg.Multiline(
+                f" Hello {name}!\n Welcome to {serverName}'s chat!\n\n",
+                font="Arial",
+                no_scrollbar=True,
+                size=(50, 20),
+                text_color="white",
+                background_color= "#383838",
+                horizontal_scroll=True,
+                autoscroll=True,
+                echo_stdout_stderr=True,
+                reroute_stdout=True,
+                # write_only=True,
+                reroute_cprint=True,
+                disabled=True,
+                # enter_submits=True,
+                key="-OUTPUT-",
+            ),
+        ],
+        [
+            sg.Multiline(
+                font="Arial",
+                no_scrollbar=True,
+                size=(50, 5),
+                horizontal_scroll=False,
+                autoscroll=True,
+                key="-INPUT-",
+            )
+        ],
+        [
+            sg.Button("Send", size=(12, 1), key="-SEND-", button_color="#219F94"),
+            sg.Push(),
+            sg.Button("Exit", size=(12, 1), key="-EXIT-"),
+        ],
+    ]
     reciever.start()
-    sender.start()
-    
-def sendMessages():
-    print("\n")
-    print("You can now enter messages!" +"\n")
+    global window
+    window= sg.Window("", layout, finalize= False)
     while(True):
-        message = input("")
+        event, value = window.read()
+        if event in [sg.WIN_CLOSED, "-EXIT-"]:
+            window.close()
+            break
+        if event == "-SEND-":
+            sendMessages(value['-INPUT-'])
+            message = value["-INPUT-"]
+            sg.cprint(
+                        f"{name} wrote:\n" + message,
+                        c=("#383838", "#f697f7"),
+                        justification="r",  # left / right,
+            )
+            window["-INPUT-"].update("")
+        elif event == "-DONE-":
+            im = Image.open("picof.png")
+            image = ImageTk.PhotoImage(image = im)   
+            layout = [
+                        [sg.Image(key='-IMAGE-', size=(im.width,im.height))],
+                    ]
+            picwindow = sg.Window("epic", layout, margins=(0, 0), finalize=True)
+            picwindow['-IMAGE-'].update(data=image)
+            picwindow.read()
+            
+            
+def sendMessages(message):
         initial = "";
         if len(message) >= 1:
             if(len(message) >= 6):
@@ -107,10 +168,10 @@ def sendMessages():
                     initial += message[x]
                 if(initial == "/image"):
                     print("WORKING POG")
-                    f = open(r"C:\Users\wehmanm\OneDrive - Milwaukee School of Engineering\Desktop\NP final\final-protocol\images\hqdefault.jpg", "rb").read()
+                    f = open(r"C:\Users\Matt Wehman\NP File\final-protocol\images\hqdefault.jpg", "rb").read()
                     tcp_socket.sendall(b'image\r\n' + f + b'\r\n\r\n')
                 else:
-                    tcp_socket.send(b'message\r\n')
+                    tcp_socket.sendall(b'message\r\n')
                     rsaFunctions.encrypt(pubKey, message,tcp_socket)
             else:
                 tcp_socket.send(b'message\r\n')
@@ -132,14 +193,8 @@ def recieveMessages():
                     f = open("picof.png","wb")
                     f.write(data)
                     f.close()
-                    im = Image.open("picof.png")
-                    layout = [
-                        [sg.Image(key='-IMAGE-', size=(im.width,im.height))],
-                    ]
-                    window = sg.Window("epic", layout, margins=(0, 0), finalize=True)
-                    image = ImageTk.PhotoImage(image=im)
-                    window['-IMAGE-'].update(data=image)
-                    window.read()
+                    window.write_event_value("-DONE-", 'done')
+                    break
                 elif types == b'message\r\n':
                         #recieve message
                         byte = b''
@@ -147,10 +202,13 @@ def recieveMessages():
                             byte += tcp_socket.recv(1)
                         byte = byte[:-2]
                         decrypted = rsaFunctions.decrypt(priv, byte)
-                        print("\n")
-                        print("             " + name + ": " + str(decrypted) + "\n")
+                        sg.cprint(
+                        f"{serverName} wrote: \n" + decrypted,
+                        c=("#ffffff", "#858585"),
+                        justification="l",  # left / right,
+            )
                         data = b''
                         break
-
+        
 if __name__ == "__main__":
     main()

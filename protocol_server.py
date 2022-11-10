@@ -1,14 +1,11 @@
-import random
-import math
+
 import threading
 from socket import *
-from tkinter.tix import IMAGETEXT
 import rsaFunctions
-import os
-import io
 import PIL.Image as Image
 from PIL import ImageFile, ImageTk
 import PySimpleGUI as sg
+import guiControls
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 PUBLIC_EXPONENT = 17;
@@ -35,22 +32,20 @@ def createServer(listen_port, listen_on):
     decrypt and print that message
     send a b'A' then close the connection
     """
-    global lock;
-    lock = threading.Lock()
-    password = input (
-            "Create a password:\n"
-        )
-    global name
-    name = input("Enter your name: \n")
-            #create socket and listen for connection
-    print("Waiting for other users " + "\n")
-    paddedPass = password.zfill(20)
-    address = (listen_on, listen_port)
-    s = socket(AF_INET, SOCK_STREAM)
-    s.bind(address)
-    s.listen(5)
-    global c, addr;
-    c, addr = s.accept()
+    
+    password, server_name = guiControls.startServerGUI()
+    layout = [[sg.Text("Waiting for other users...")]]
+    waitWindow = sg.Window("Wait", layout, size=(180,90))
+    while True:
+        waitWindow.read(timeout= 20)
+        paddedPass = password.zfill(20)
+        address = (listen_on, listen_port)
+        s = socket(AF_INET, SOCK_STREAM)
+        s.bind(address)
+        s.listen(5)
+        global c, addr;
+        c, addr = s.accept()
+        break
     #create keys
     
     global priv
@@ -59,9 +54,7 @@ def createServer(listen_port, listen_on):
     global pubKey
     pubKey = (e,n)    
     reciever = threading.Thread(target = recieveMessages)
-    sender = threading.Thread(target = sendMessages)
-    
-    
+    sender = threading.Thread(target = sendMessages)    
     while(True):
         guess = b''
         for x in range(20):
@@ -71,36 +64,96 @@ def createServer(listen_port, listen_on):
         else:
             c.send(b'A')
             break
-        
-    c.send(name.encode("ascii"))
+    waitWindow.close()
+    c.send(server_name.encode("ascii"))
     c.send(b'\r\n')
-        
+    
+    global name    
     byte = b''
     while not byte.__contains__(b'\r\n'):
         byte += c.recv(1)
     byte = byte[:-2]
     name = byte.decode("ascii")
-    print(name + " has joined the server!")
     
+    reciever = threading.Thread(target=recieveMessages)
+    layout = [
+        [sg.Titlebar("Chat Client")],
+        [
+            sg.Multiline(
+                f" Hello {server_name}!\n Welcome to your chat!\n\n",
+                f"{name} has joined the server!\n\n",
+                font="Arial",
+                no_scrollbar=True,
+                size=(50, 20),
+                text_color="white",
+                background_color= "#383838",
+                horizontal_scroll=True,
+                autoscroll=True,
+                echo_stdout_stderr=True,
+                reroute_stdout=True,
+                # write_only=True,
+                reroute_cprint=True,
+                disabled=True,
+                # enter_submits=True,
+                key="-OUTPUT-",
+            ),
+        ],
+        [
+            sg.Multiline(
+                font="Arial",
+                no_scrollbar=True,
+                size=(50, 5),
+                horizontal_scroll=False,
+                autoscroll=True,
+                key="-INPUT-",
+            )
+        ],
+        [
+            sg.Button("Send", size=(12, 1), key="-SEND-", button_color="#219F94"),
+            sg.Push(),
+            sg.Button("Exit", size=(12, 1), key="-EXIT-"),
+        ],
+    ]
     reciever.start()
-    sender.start()
+    global window
+    window= sg.Window("", layout, finalize= False)
+    while(True):
+        event, value = window.read()
+        if event in [sg.WIN_CLOSED, "-EXIT-"]:
+            window.close()
+            break
+        if event == "-SEND-":
+            sendMessages(value['-INPUT-'])
+            message = value["-INPUT-"]
+            sg.cprint(
+                        f"{name} wrote:\n" + message,
+                        c=("#383838", "#f697f7"),
+                        justification="r",  # left / right,
+            )
+            window["-INPUT-"].update("")
+        elif event == "-DONE-":
+            im = Image.open("picof.png")
+            image = ImageTk.PhotoImage(image = im)   
+            layout = [
+                        [sg.Image(key='-IMAGE-', size=(im.width,im.height))],
+                    ]
+            picwindow = sg.Window("epic", layout, margins=(0, 0), finalize=True)
+            picwindow['-IMAGE-'].update(data=image)
+            picwindow.read()
     
 
-def sendMessages():
-    print("\n")
-    print("You can now enter messages!" +"\n")
-    while(True):
-        message = input("")
+def sendMessages(message):
         initial = "";
         if len(message) >= 1:
             if(len(message) >= 6):
                 for x in range(6):
                     initial += message[x]
                 if(initial == "/image"):
-                    f = open(r"C:\Users\wehmanm\OneDrive - Milwaukee School of Engineering\Desktop\NP final\final-protocol\DirectSupply.png", "rb").read()
+                    print("WORKING POG")
+                    f = open(r"C:\Users\Matt Wehman\NP File\final-protocol\images\hqdefault.jpg", "rb").read()
                     c.sendall(b'image\r\n' + f + b'\r\n\r\n')
                 else:
-                    c.send(b'message\r\n')
+                    c.sendall(b'message\r\n')
                     rsaFunctions.encrypt(pubKey, message,c)
             else:
                 c.send(b'message\r\n')
@@ -121,14 +174,8 @@ def recieveMessages():
                     f = open("picof.png","wb")
                     f.write(data)
                     f.close()
-                    im = Image.open("picof.png")
-                    layout = [
-                        [sg.Image(key='-IMAGE-', size=(im.width,im.height))],
-                    ]
-                    window = sg.Window("epic", layout, margins=(0, 0), finalize=True)
-                    image = ImageTk.PhotoImage(image=im)
-                    window['-IMAGE-'].update(data=image)
-                    window.read()
+                    window.write_event_value("-DONE-", 'done')
+                    break
                 elif types == b'message\r\n':
                         #recieve message
                         byte = b''
@@ -136,10 +183,12 @@ def recieveMessages():
                             byte += c.recv(1)
                         byte = byte[:-2]
                         decrypted = rsaFunctions.decrypt(priv, byte)
-                        print("\n")
-                        print("             " + name + ": " + str(decrypted) + "\n")
+                        sg.cprint(
+                        f"{name} wrote: \n" + decrypted,
+                        c=("#ffffff", "#858585"),
+                        justification="l",  # left / right,
+            )
                         data = b''
                         break
-    
         
         

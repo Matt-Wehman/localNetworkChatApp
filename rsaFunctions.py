@@ -1,6 +1,5 @@
 import math
 import random
-import aspose.words as aw 
 import os
 import io
 import PIL.Image as Image
