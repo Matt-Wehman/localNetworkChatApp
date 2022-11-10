@@ -140,8 +140,7 @@ def createServer(listen_port, listen_on):
             picwindow = sg.Window("epic", layout, margins=(0, 0), finalize=True)
             picwindow['-IMAGE-'].update(data=image)
             picwindow.read()
-    
-
+            
 def sendMessages(message):
         initial = "";
         if len(message) >= 1:
@@ -150,7 +149,7 @@ def sendMessages(message):
                     initial += message[x]
                 if(initial == "/image"):
                     print("WORKING POG")
-                    f = open(r"C:\Users\Matt Wehman\NP File\final-protocol\images\hqdefault.jpg", "rb").read()
+                    f = open(r"C:\Users\wehmanm\OneDrive - Milwaukee School of Engineering\Desktop\NP final\final-protocol\DirectSupply.png", "rb").read()
                     c.sendall(b'image\r\n' + f + b'\r\n\r\n')
                 else:
                     c.sendall(b'message\r\n')
@@ -158,7 +157,7 @@ def sendMessages(message):
             else:
                 c.send(b'message\r\n')
                 rsaFunctions.encrypt(pubKey, message,c)
-
+                
 def recieveMessages():
     while(True):
         types = c.recv(1)

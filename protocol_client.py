@@ -6,16 +6,11 @@ import guiControls
 PUBLIC_EXPONENT = 17;
 SERVER_HOST = 12100
 SERVER_PORT = "localhost"
-import os
-import io
 import PySimpleGUI as sg
 global lock
 import PIL.Image as Image
-import time;
 from PIL import ImageFile, ImageTk
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-
-lock = threading.Lock()
 
 def main():
     """Provide the user with a variety of encryption-related actions"""
@@ -168,7 +163,7 @@ def sendMessages(message):
                     initial += message[x]
                 if(initial == "/image"):
                     print("WORKING POG")
-                    f = open(r"C:\Users\Matt Wehman\NP File\final-protocol\images\hqdefault.jpg", "rb").read()
+                    f = open(r"C:\Users\wehmanm\OneDrive - Milwaukee School of Engineering\Desktop\NP final\final-protocol\DirectSupply.png", "rb").read()
                     tcp_socket.sendall(b'image\r\n' + f + b'\r\n\r\n')
                 else:
                     tcp_socket.sendall(b'message\r\n')
