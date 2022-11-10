@@ -2,7 +2,7 @@
 import threading
 from socket import *
 import rsaFunctions
-PUBLIC_EXPONENT = 17;
+PUBLIC_EXPONENT = 17
 SERVER_HOST = 12100
 SERVER_PORT = "localhost"
 import os
@@ -11,6 +11,7 @@ import PySimpleGUI as sg
 global lock
 import PIL.Image as Image
 from PIL import ImageFile, ImageTk
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 lock = threading.Lock()
@@ -33,7 +34,7 @@ def createClient(server_host, server_port):
     Create a plaintext ASCII message
     Encrypt
     Send 2 bytes (m) that give the size of the message in bytes
-    Send encrypted messsage
+    Send encrypted message
     Send '\r\n'
     receive a b'A' and then close the connection
     """
@@ -106,9 +107,8 @@ def sendMessages():
                 for x in range(6):
                     initial += message[x]
                 if(initial == "/image"):
-                    print("WORKING POG")
-                    f = open(r"C:\Users\wehmanm\OneDrive - Milwaukee School of Engineering\Desktop\NP final\final-protocol\images\hqdefault.jpg", "rb").read()
-                    tcp_socket.sendall(b'image\r\n' + f + b'\r\n\r\n')
+                    #print("WORKING POG")
+                    import drawer
                 else:
                     tcp_socket.send(b'message\r\n')
                     rsaFunctions.encrypt(pubKey, message,tcp_socket)
@@ -141,7 +141,7 @@ def recieveMessages():
                     window['-IMAGE-'].update(data=image)
                     window.read()
                 elif types == b'message\r\n':
-                        #recieve message
+                        #receive message
                         byte = b''
                         while not byte.__contains__(b'\r\n'):
                             byte += tcp_socket.recv(1)

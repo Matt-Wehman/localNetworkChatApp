@@ -10,6 +10,7 @@ import PIL.Image as Image
 from PIL import ImageFile, ImageTk
 import PySimpleGUI as sg
 
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 PUBLIC_EXPONENT = 17;
 SERVER_HOST = 12100
@@ -91,14 +92,13 @@ def sendMessages():
     print("You can now enter messages!" +"\n")
     while(True):
         message = input("")
-        initial = "";
+        initial = ""
         if len(message) >= 1:
             if(len(message) >= 6):
                 for x in range(6):
                     initial += message[x]
                 if(initial == "/image"):
-                    f = open(r"C:\Users\wehmanm\OneDrive - Milwaukee School of Engineering\Desktop\NP final\final-protocol\DirectSupply.png", "rb").read()
-                    c.sendall(b'image\r\n' + f + b'\r\n\r\n')
+                    import drawer
                 else:
                     c.send(b'message\r\n')
                     rsaFunctions.encrypt(pubKey, message,c)
