@@ -158,7 +158,6 @@ def sendMessages(message):
                 if(initial == "/image"):
                     tcp_socket.send(b'image\r\n')
                     blockCount = get_file_block_count("canvas7.png")
-                    print("Block count: " + str(blockCount))
                     for x in range (blockCount):
                         sendbytes("canvas7.png", tcp_socket,x)
                     tcp_socket.send(b'\r\n\r\n')
@@ -174,16 +173,16 @@ def sendbytes(fileName, rec_socket, x):
     block = b''
     block += int.to_bytes(len(get_file_block(fileName, x + 1)), 2, 'big')
     block += get_file_block(fileName, x + 1)
-    print("Block: " + str(block))
     rec_socket.sendto(block, addr)
                 
             
 def recieveMessages():
     while(True):
         types = tcp_socket.recv(1)
-        data = b''
         if(types):
             while(True):
+                data = b''
+                fulldata = b''
                 while not types.__contains__(b'\r\n'):
                     types += tcp_socket.recv(1)
                 if types == b'image\r\n':
@@ -191,8 +190,12 @@ def recieveMessages():
                         size = tcp_socket.recv(2)
                         fulldata += size
                         for x in range(int.from_bytes(size, 'big', signed=True)):
-                            data += tcp_socket.recv(1)
-                            fulldata += data
+                            recv = tcp_socket.recv(1)
+                            data += recv
+                            fulldata += recv
+                            if(fulldata.__contains__(b'\r\n\r\n')):
+                                break
+                    data = data[:-2]
                     arrayData = bytearray(data)
                     imageBytes = b''
                     imageBytes = io.BytesIO(arrayData)
@@ -208,7 +211,7 @@ def recieveMessages():
                         byte = byte[:-2]
                         decrypted = rsaFunctions.decrypt(priv, byte)
                         sg.cprint(
-                        f"{serverName} wrote: \n" + decrypted,
+                        f"{name} wrote: \n" + decrypted,
                         c=("#ffffff", "#858585"),
                         justification="l",  # left / right,
             )

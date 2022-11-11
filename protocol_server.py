@@ -150,11 +150,10 @@ def sendMessages(message):
                 for x in range(6):
                     initial += message[x]
                 if(initial == "/image"):
+                    c.send(b'image\r\n')
                     blockCount = get_file_block_count("canvas7.png")
-                    print("Block count: " + str(blockCount))
                     for x in range (blockCount):
                         sendbytes("canvas7.png", c,x)
-                        c.send(b'\r\n')
                     c.send(b'\r\n\r\n')
                 else:
                     c.sendall(b'message\r\n')
@@ -163,11 +162,11 @@ def sendMessages(message):
                 c.send(b'message\r\n')
                 rsaFunctions.encrypt(pubKey, message,c)
 
+                
 def sendbytes(fileName, rec_socket, x):
     block = b''
-    block += int.to_bytes(x + 1, 2, 'big', signed=False)
+    block += int.to_bytes(len(get_file_block(fileName, x + 1)), 2, 'big')
     block += get_file_block(fileName, x + 1)
-    print("Block: " + str(block))
     rec_socket.sendto(block, addr)
                 
 def recieveMessages():
