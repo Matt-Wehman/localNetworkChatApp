@@ -13,6 +13,7 @@ global lock
 import PIL.Image as Image
 from PIL import ImageFile, ImageTk
 from blockHelper import *
+import drawer
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -139,7 +140,7 @@ def createClient(server_host, server_port):
             )
             window["-INPUT-"].update("")
         elif event == "-DONE-":
-            im = Image.open("picof.png")
+            im = Image.open("cool.png")
             image = ImageTk.PhotoImage(image = im)   
             layout = [
                         [sg.Image(key='-IMAGE-', size=(im.width,im.height))],
@@ -156,10 +157,11 @@ def sendMessages(message):
                 for x in range(6):
                     initial += message[x]
                 if(initial == "/image"):
+                    drawer.start()
                     tcp_socket.send(b'image\r\n')
-                    blockCount = get_file_block_count("canvas7.png")
+                    blockCount = get_file_block_count("curSentImage.jpg")
                     for x in range (blockCount):
-                        sendbytes("canvas7.png", tcp_socket,x)
+                        sendbytes("curSentImage.jpg", tcp_socket,x)
                     tcp_socket.send(b'\r\n\r\n')
                 else:
                     tcp_socket.sendall(b'message\r\n')
@@ -200,7 +202,7 @@ def recieveMessages():
                     imageBytes = b''
                     imageBytes = io.BytesIO(arrayData)
                     im = Image.open(imageBytes)
-                    im.save("image.png")
+                    im.save("cool.png")
                     window.write_event_value("-DONE-", 'done')
                     break
                 elif types == b'message\r\n':
@@ -211,12 +213,9 @@ def recieveMessages():
                         byte = byte[:-2]
                         decrypted = rsaFunctions.decrypt(priv, byte)
                         sg.cprint(
-                        f"{name} wrote: \n" + decrypted,
+                        f"{serverName} wrote: \n" + decrypted,
                         c=("#ffffff", "#858585"),
                         justification="l",  # left / right,
             )
                         data = b''
                         break
-        
-if __name__ == "__main__":
-    main()

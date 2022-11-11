@@ -8,6 +8,7 @@ import PySimpleGUI as sg
 import guiControls
 import io
 from blockHelper import *
+import drawer;
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 PUBLIC_EXPONENT = 17;
@@ -125,16 +126,17 @@ def createServer(listen_port, listen_on):
             window.close()
             break
         if event == "-SEND-":
-            sendMessages(value['-INPUT-'])
-            message = value["-INPUT-"]
-            sg.cprint(
-                        f"{name} wrote:\n" + message,
-                        c=("#383838", "#f697f7"),
-                        justification="r",  # left / right,
-            )
+            initial = sendMessages(value['-INPUT-'])
+            if initial != "/image":
+                message = value["-INPUT-"]
+                sg.cprint(
+                            f"{server_name} wrote:\n" + message,
+                            c=("#383838", "#f697f7"),
+                            justification="r",  # left / right,
+                )
             window["-INPUT-"].update("")
         elif event == "-DONE-":
-            im = Image.open("image.png")
+            im = Image.open("cool.png")
             image = ImageTk.PhotoImage(image = im)   
             layout = [
                         [sg.Image(key='-IMAGE-', size=(im.width,im.height))],
@@ -144,16 +146,17 @@ def createServer(listen_port, listen_on):
             picwindow.read()
 
 def sendMessages(message):
-        initial = "";
+        initial = ""
         if len(message) >= 1:
             if(len(message) >= 6):
                 for x in range(6):
                     initial += message[x]
                 if(initial == "/image"):
+                    drawer.start()
                     c.send(b'image\r\n')
-                    blockCount = get_file_block_count("canvas7.png")
+                    blockCount = get_file_block_count("curSentImage.jpg")
                     for x in range (blockCount):
-                        sendbytes("canvas7.png", c,x)
+                        sendbytes("curSentImage.jpg", c,x)
                     c.send(b'\r\n\r\n')
                 else:
                     c.sendall(b'message\r\n')
@@ -161,6 +164,7 @@ def sendMessages(message):
             else:
                 c.send(b'message\r\n')
                 rsaFunctions.encrypt(pubKey, message,c)
+        return initial
 
                 
 def sendbytes(fileName, rec_socket, x):
@@ -193,7 +197,7 @@ def recieveMessages():
                     imageBytes = b''
                     imageBytes = io.BytesIO(arrayData)
                     im = Image.open(imageBytes)
-                    im.save("image.png")
+                    im.save("cool.png")
                     window.write_event_value("-DONE-", 'done')
                     break
                 elif types == b'message\r\n':

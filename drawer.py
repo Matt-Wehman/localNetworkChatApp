@@ -1,194 +1,134 @@
-# Imports
-import sys
-import pygame
-import ctypes
-
-# Increas Dots Per inch so it looks sharper
-ctypes.windll.shcore.SetProcessDpiAwareness(True)
+from tkinter import *
+from tkinter.ttk import Scale
+from tkinter import colorchooser,filedialog,messagebox
+import PIL.ImageGrab as ImageGrab
 
 
-# Pygame Configuration
-class Drawer():
-    pygame.init()
-    global fps
-    fps = 300
-    global fpsClock
-    fpsClock = pygame.time.Clock()
-    width, height = 1000, 1000
-    global screen
-    screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
-    global font
-    font = pygame.font.SysFont('Arial', 20)
-        
+#Defining Class and constructor of the Program
+class Draw():
+    def __init__(self,root):
 
-    # Variables
+#Defining title and Size of the Tkinter Window GUI
+        self.root =root
+        self.root.title("FPP Canvas")
+#         self.root.geometry("810x530")
+        self.root.configure(background="white")
+#         self.root.resizable(0,0)
+ 
+#variables for pointer and Eraser   
+        self.pointer= "black"
+        self.erase="white"
 
-    # Our Buttons will append themself to this list
-    global objects
-    objects = []
-
-    # Initial color
-    global drawColor
-    drawColor = [0, 0, 0]
-
-    # Initial brush size
-    global brushSize
-    brushSize = 30
-    global brushSizeSteps
-    brushSizeSteps = 3
-
-    # Drawing Area Size
-    global canvasSize
-    canvasSize = [800, 800]
-
-    global opened
-    opened = True
+#Widgets for Tkinter Window
     
-    def changeColor(color):
-        global drawColor
-        drawColor = color
+# Configure the alignment , font size and color of the text
+        text=Text(root)
+        text.tag_configure("tag_name", justify='center', font=('arial',25),background='#292826',foreground='orange')
 
-    # Button Class
-    class Button():
-        def __init__(self, x, y, width, height, buttonText='Button', onclickFunction=None, onePress=False):
-            self.x = x
-            self.y = y
-            self.width = width
-            self.height = height
-            self.onclickFunction = onclickFunction
-            self.onePress = onePress
+# Insert a Text
+        text.insert("1.0", "FPP Canvas")
 
-            self.fillColors = {
-                'normal': '#ffffff',
-                'hover': '#666666',
-                'pressed': '#333333',
-            }
-
-            self.buttonSurface = pygame.Surface((self.width, self.height))
-            self.buttonRect = pygame.Rect(self.x, self.y, self.width, self.height)
-
-            self.buttonSurf = font.render(buttonText, True, (20, 20, 20))
-
-            self.alreadyPressed = False
-
-            objects.append(self)
-
-        def process(self):
-
-            mousePos = pygame.mouse.get_pos()
-
-            self.buttonSurface.fill(self.fillColors['normal'])
-            if self.buttonRect.collidepoint(mousePos):
-                self.buttonSurface.fill(self.fillColors['hover'])
-
-                if pygame.mouse.get_pressed(num_buttons=3)[0]:
-                    self.buttonSurface.fill(self.fillColors['pressed'])
-
-                    if self.onePress:
-                        self.onclickFunction()
-
-                    elif not self.alreadyPressed:
-                        self.onclickFunction()
-                        self.alreadyPressed = True
-
-                else:
-                    self.alreadyPressed = False
-
-            self.buttonSurface.blit(self.buttonSurf, [
-                self.buttonRect.width/2 - self.buttonSurf.get_rect().width/2,
-                self.buttonRect.height/2 - self.buttonSurf.get_rect().height/2
-            ])
-            screen.blit(self.buttonSurface, self.buttonRect)
-
-
-    # Handler Functions
-
-    # Changing the Color
-    
-
-    # Changing the Brush Size
-    def changebrushSize(dir):
-        global brushSize
-        if dir == 'greater':
-            brushSize += brushSizeSteps
-        else:
-            brushSize -= brushSizeSteps
-
-    # Save the surface to the Disk
-
-    def save():
-        pygame.image.save(canvas, "canvas7.png")
-        pygame.quit()
-        sys.exit()
+# Add the tag for following given text
+        text.tag_add("tag_name", "1.0", "end")
+        text.pack()
         
-    def quit():
-        pygame.quit()
-        sys.exit()
+# Pick a color for drawing from color pannel
+        self.pick_color = LabelFrame(self.root,text='Colors',font =('arial',15),bd=5,relief=RIDGE,bg="white")
+        self.pick_color.place(x=0,y=40,width=90,height=185)
 
-    # Button Variables.
-    buttonWidth = 120
-    buttonHeight = 35
+        colors = ['blue','red','green', 'orange','violet','black','yellow','purple','pink','gold','brown','indigo']
+        i=j=0
+        for color in colors:
+            Button(self.pick_color,bg=color,bd=2,relief=RIDGE,width=3,command=lambda col=color:self.select_color(col)).grid(row=i,column=j)
+            i+=1
+            if i==6:
+                i=0
+                j=1
 
-    # Buttons and their respective functions.
-    buttons = [
-        ['Black', lambda: changeColor([0, 0, 0])],
-        ['White', lambda: changeColor([255, 255, 255])],
-        ['Blue', lambda: changeColor([0, 0, 255])],
-        ['Green', lambda: changeColor([0, 255, 0])],
-        ['Brush Larger', lambda: changebrushSize('greater')],
-        ['Brush Smaller', lambda: changebrushSize('smaller')],
-        ['Save', save],
-    ]
+ # Erase Button and its properties   
+        self.eraser_btn= Button(self.root,text="Eraser",bd=4,bg='white',command=self.eraser,width=9,relief=RIDGE)
+        self.eraser_btn.place(x=0,y=197)
 
-    # Making the buttons
-    for index, buttonName in enumerate(buttons):
-        Button(index * (buttonWidth + 10) + 10, 10, buttonWidth,
-            buttonHeight, buttonName[0], buttonName[1])
+# Reset Button to clear the entire screen 
+        self.clear_screen= Button(self.root,text="Clear Screen",bd=4,bg='white',command= lambda : self.background.delete('all'),width=9,relief=RIDGE)
+        self.clear_screen.place(x=0,y=227)
 
-    # Canvas
-    global canvas
-    canvas = pygame.Surface(canvasSize)
-    canvas.fill((255, 255, 255))
+# Save Button for saving the image in local computer
+        self.save_btn= Button(self.root,text="Send",bd=4,bg='white',command=self.save_drawing,width=9,relief=RIDGE)
+        self.save_btn.place(x=0,y=257)
 
-    # Game loop.
-    while True:
-        screen.fill((30, 30, 30))
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                opened = False
-                pygame.quit()
-                sys.exit()
+# Background Button for choosing color of the Canvas
+        self.bg_btn= Button(self.root,text="Background",bd=4,bg='white',command=self.canvas_color,width=9,relief=RIDGE)
+        self.bg_btn.place(x=0,y=287)
 
-        # Drawing the Buttons
-        for object in objects:
-            object.process()
 
-        # Draw the Canvas at the center of the screen
-        x, y = screen.get_size()
-        screen.blit(canvas, [x/2 - canvasSize[0]/2, y/2 - canvasSize[1]/2])
+#Creating a Scale for pointer and eraser size
+        self.pointer_frame= LabelFrame(self.root,text='size',bd=5,bg='white',font=('arial',15,'bold'),relief=RIDGE)
+        self.pointer_frame.place(x=0,y=320,height=200,width=70)
 
-        # Drawing with the mouse
-        if pygame.mouse.get_pressed()[0]:
-            mx, my = pygame.mouse.get_pos()
+        self.pointer_size =Scale(self.pointer_frame,orient=VERTICAL,from_ =48 , to =0, length=168)
+        self.pointer_size.set(1)
+        self.pointer_size.grid(row=0,column=1,padx=15)
 
-            # Calculate Position on the Canvas
-            dx = mx - x/2 + canvasSize[0]/2
-            dy = my - y/2 + canvasSize[1]/2
 
-            pygame.draw.circle(
-                canvas,
-                drawColor,
-                [dx, dy],
-                brushSize,
-            )
+#Defining a background color for the Canvas 
+        self.background = Canvas(self.root,bg='white',bd=5,relief=GROOVE,height=470,width=680)
+        self.background.place(x=80,y=40)
 
-        # Reference Dot
-        pygame.draw.circle(
-            screen,
-            drawColor,
-            [100, 100],
-            brushSize,
-        )
 
-        pygame.display.flip()
-        fpsClock.tick(fps)
+#Bind the background Canvas with mouse click
+        self.background.bind("<B1-Motion>",self.paint) 
+        
+        
+# Functions are defined here
+
+# Paint Function for Drawing the lines on Canvas
+    def paint(self,event):       
+        x1,y1 = (event.x-2), (event.y-2)  
+        x2,y2 = (event.x+2), (event.y+2)  
+
+        self.background.create_oval(x1,y1,x2,y2,fill=self.pointer,outline=self.pointer,width=self.pointer_size.get())
+
+# Function for choosing the color of pointer  
+    def select_color(self,col):
+        self.pointer = col
+
+# Function for defining the eraser
+    def eraser(self):
+        self.pointer= self.erase
+
+# Function for choosing the background color of the Canvas    
+    def canvas_color(self):
+        color=colorchooser.askcolor()
+        self.background.configure(background=color[1])
+        self.erase= color[1]
+
+# Function for saving the image file in Local Computer
+    def save_drawing(self):
+        try:
+            # self.background update()
+            #file_ss = filedialog.asksaveasfilename(defaultextension='jpg')
+            file_ss = "curSentImage.jpg"
+            #print(file_ss)
+            x=self.root.winfo_rootx() + self.background.winfo_x()
+            #print(x, self.background.winfo_x())
+            y=self.root.winfo_rooty() + self.background.winfo_y()
+            #print(y)
+
+            x1= x + self.background.winfo_width() 
+            #print(x1)
+            y1= y + self.background.winfo_height()
+            #print(y1)
+            ImageGrab.grab().crop((x + 80 , y + 80, x1, y1 - 20)).save(file_ss)
+            #messagebox.showinfo('Image sent')
+        except:
+            print("Error in saving the image")
+
+
+def start():
+    root = Tk()
+    p = Draw(root)
+    root.mainloop()
+    
+if __name__ =="__main__":
+   start() 
