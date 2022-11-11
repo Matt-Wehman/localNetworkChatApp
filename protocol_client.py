@@ -11,6 +11,7 @@ import PySimpleGUI as sg
 global lock
 import PIL.Image as Image
 from PIL import ImageFile, ImageTk
+import drawer
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -107,8 +108,7 @@ def sendMessages():
                 for x in range(6):
                     initial += message[x]
                 if(initial == "/image"):
-                    #print("WORKING POG")
-                    import drawer
+                    drawer.start()
                 else:
                     tcp_socket.send(b'message\r\n')
                     rsaFunctions.encrypt(pubKey, message,tcp_socket)

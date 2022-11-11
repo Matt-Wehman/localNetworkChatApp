@@ -9,6 +9,7 @@ import io
 import PIL.Image as Image
 from PIL import ImageFile, ImageTk
 import PySimpleGUI as sg
+import drawer
 
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -98,7 +99,7 @@ def sendMessages():
                 for x in range(6):
                     initial += message[x]
                 if(initial == "/image"):
-                    import drawer
+                    drawer.start()
                 else:
                     c.send(b'message\r\n')
                     rsaFunctions.encrypt(pubKey, message,c)
