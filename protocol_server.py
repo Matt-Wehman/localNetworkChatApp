@@ -6,6 +6,8 @@ import PIL.Image as Image
 from PIL import ImageFile, ImageTk
 import PySimpleGUI as sg
 import guiControls
+import io
+from blockHelper import *
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 PUBLIC_EXPONENT = 17;
@@ -132,7 +134,7 @@ def createServer(listen_port, listen_on):
             )
             window["-INPUT-"].update("")
         elif event == "-DONE-":
-            im = Image.open("picof.png")
+            im = Image.open("image.png")
             image = ImageTk.PhotoImage(image = im)   
             layout = [
                         [sg.Image(key='-IMAGE-', size=(im.width,im.height))],
@@ -140,7 +142,7 @@ def createServer(listen_port, listen_on):
             picwindow = sg.Window("epic", layout, margins=(0, 0), finalize=True)
             picwindow['-IMAGE-'].update(data=image)
             picwindow.read()
-            
+
 def sendMessages(message):
         initial = "";
         if len(message) >= 1:
@@ -148,31 +150,51 @@ def sendMessages(message):
                 for x in range(6):
                     initial += message[x]
                 if(initial == "/image"):
-                    print("WORKING POG")
-                    f = open(r"C:\Users\wehmanm\OneDrive - Milwaukee School of Engineering\Desktop\NP final\final-protocol\DirectSupply.png", "rb").read()
-                    c.sendall(b'image\r\n' + f + b'\r\n\r\n')
+                    blockCount = get_file_block_count("canvas7.png")
+                    print("Block count: " + str(blockCount))
+                    for x in range (blockCount):
+                        sendbytes("canvas7.png", c,x)
+                        c.send(b'\r\n')
+                    c.send(b'\r\n\r\n')
                 else:
                     c.sendall(b'message\r\n')
                     rsaFunctions.encrypt(pubKey, message,c)
             else:
                 c.send(b'message\r\n')
                 rsaFunctions.encrypt(pubKey, message,c)
+
+def sendbytes(fileName, rec_socket, x):
+    block = b''
+    block += int.to_bytes(x + 1, 2, 'big', signed=False)
+    block += get_file_block(fileName, x + 1)
+    print("Block: " + str(block))
+    rec_socket.sendto(block, addr)
                 
 def recieveMessages():
     while(True):
         types = c.recv(1)
-        data = b''
         if(types):
             while(True):
+                data = b''
+                fulldata = b''
                 while not types.__contains__(b'\r\n'):
                     types += c.recv(1)
                 if types == b'image\r\n':
-                    while not data.__contains__(b'\r\n\r\n'):
-                        data += c.recv(10)
-                    data = data[:-4]
-                    f = open("picof.png","wb")
-                    f.write(data)
-                    f.close()
+                    while not fulldata.__contains__(b'\r\n\r\n'):
+                        size = c.recv(2)
+                        fulldata += size
+                        for x in range(int.from_bytes(size, 'big', signed=True)):
+                            recv = c.recv(1)
+                            data += recv
+                            fulldata += recv
+                            if(fulldata.__contains__(b'\r\n\r\n')):
+                                break
+                    data = data[:-2]
+                    arrayData = bytearray(data)
+                    imageBytes = b''
+                    imageBytes = io.BytesIO(arrayData)
+                    im = Image.open(imageBytes)
+                    im.save("image.png")
                     window.write_event_value("-DONE-", 'done')
                     break
                 elif types == b'message\r\n':

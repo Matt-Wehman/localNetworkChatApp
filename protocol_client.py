@@ -6,10 +6,14 @@ import guiControls
 PUBLIC_EXPONENT = 17;
 SERVER_HOST = 12100
 SERVER_PORT = "localhost"
+import os
+import io
 import PySimpleGUI as sg
 global lock
 import PIL.Image as Image
 from PIL import ImageFile, ImageTk
+from blockHelper import *
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def main():
@@ -35,21 +39,13 @@ def createClient(server_host, server_port):
     receive a b'A' and then close the connection
     """
     
-    # password = ""
-    # while(True):
-    #     password = input(
-    #     "Enter a password (max 10 characters):\n"
-    #     )
-    #     if len(password) > 10:
-    #         print("password is too long")
-    #     else:
-    #         break
-    #create socket
     password = guiControls.startClientGUI()
     
     # global tcp_socket
     global tcp_socket
     tcp_socket = socket(AF_INET, SOCK_STREAM)
+    global addr
+    addr = (server_port, server_host)
     tcp_socket.connect((server_port, server_host))
     reciever = threading.Thread(target = recieveMessages)
     sender = threading.Thread(target = sendMessages)
@@ -88,8 +84,6 @@ def createClient(server_host, server_port):
     tcp_socket.send(name.encode("ascii"))
     tcp_socket.send(b'\r\n')
     # guiControls.createGUI(name, serverName, tcp_socket)
-    
-    reciever = threading.Thread(target=recieveMessages)
     layout = [
         [sg.Titlebar("Chat Client")],
         [
@@ -162,17 +156,28 @@ def sendMessages(message):
                 for x in range(6):
                     initial += message[x]
                 if(initial == "/image"):
-                    print("WORKING POG")
-                    f = open(r"C:\Users\wehmanm\OneDrive - Milwaukee School of Engineering\Desktop\NP final\final-protocol\DirectSupply.png", "rb").read()
-                    tcp_socket.sendall(b'image\r\n' + f + b'\r\n\r\n')
+                    tcp_socket.send(b'image\r\n')
+                    blockCount = get_file_block_count("canvas7.png")
+                    print("Block count: " + str(blockCount))
+                    for x in range (blockCount):
+                        sendbytes("canvas7.png", tcp_socket,x)
+                    tcp_socket.send(b'\r\n\r\n')
                 else:
                     tcp_socket.sendall(b'message\r\n')
                     rsaFunctions.encrypt(pubKey, message,tcp_socket)
             else:
                 tcp_socket.send(b'message\r\n')
                 rsaFunctions.encrypt(pubKey, message,tcp_socket)
+                
+                
+def sendbytes(fileName, rec_socket, x):
+    block = b''
+    block += int.to_bytes(len(get_file_block(fileName, x + 1)), 2, 'big')
+    block += get_file_block(fileName, x + 1)
+    print("Block: " + str(block))
+    rec_socket.sendto(block, addr)
+                
             
-
 def recieveMessages():
     while(True):
         types = tcp_socket.recv(1)
@@ -182,12 +187,17 @@ def recieveMessages():
                 while not types.__contains__(b'\r\n'):
                     types += tcp_socket.recv(1)
                 if types == b'image\r\n':
-                    while not data.__contains__(b'\r\n\r\n'):
-                        data += tcp_socket.recv(10)
-                    data = data[:-4]
-                    f = open("picof.png","wb")
-                    f.write(data)
-                    f.close()
+                    while not fulldata.__contains__(b'\r\n\r\n'):
+                        size = tcp_socket.recv(2)
+                        fulldata += size
+                        for x in range(int.from_bytes(size, 'big', signed=True)):
+                            data += tcp_socket.recv(1)
+                            fulldata += data
+                    arrayData = bytearray(data)
+                    imageBytes = b''
+                    imageBytes = io.BytesIO(arrayData)
+                    im = Image.open(imageBytes)
+                    im.save("image.png")
                     window.write_event_value("-DONE-", 'done')
                     break
                 elif types == b'message\r\n':
