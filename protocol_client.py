@@ -51,7 +51,7 @@ def createClient(server_host, server_port):
     reciever = threading.Thread(target = recieveMessages)
     sender = threading.Thread(target = sendMessages)
     
-     #create key from data
+    #create key from data
     global priv
     priv = rsaFunctions.sendKey(tcp_socket)
     e, n = rsaFunctions.recvKey(tcp_socket)
@@ -59,8 +59,10 @@ def createClient(server_host, server_port):
     pubKey = (e,n)   
     
     
+    #sending password guess
     rsaFunctions.encryptPass(pubKey,password,tcp_socket)
     
+    #recieving response to password guess
     while(True):
         response = tcp_socket.recv(1)
         if response != b'A':
@@ -69,7 +71,7 @@ def createClient(server_host, server_port):
         else:
             break
         
-        
+    #recieving the server name    
     global serverName    
     byte = b''
     while not byte.__contains__(b'\r\n'):
@@ -79,12 +81,13 @@ def createClient(server_host, server_port):
     print("\n")
     print("You have entered " + serverName +"'s server!")
     
-    
+    #sending the server client name
     global name
     name = guiControls.clientNameGUI()
     tcp_socket.send(name.encode("ascii"))
     tcp_socket.send(b'\r\n')
-    # guiControls.createGUI(name, serverName, tcp_socket)
+    
+    #setting layout for chat gui
     layout = [
         [sg.Titlebar("Chat Client")],
         [
@@ -123,6 +126,7 @@ def createClient(server_host, server_port):
         ],
     ]
     reciever.start()
+    #creating gui window and setting the layout
     global window
     window= sg.Window("", layout, finalize= False)
     while(True):
@@ -131,8 +135,10 @@ def createClient(server_host, server_port):
             window.close()
             break
         if event == "-SEND-":
+            #sending message when sent button is pressed
             sendMessages(value['-INPUT-'])
             message = value["-INPUT-"]
+            #prints message to the display
             sg.cprint(
                         f"{name} wrote:\n" + message,
                         c=("#383838", "#f697f7"),
@@ -140,6 +146,7 @@ def createClient(server_host, server_port):
             )
             window["-INPUT-"].update("")
         elif event == "-DONE-":
+            # opens and displays the created image
             im = Image.open("cool.png")
             image = ImageTk.PhotoImage(image = im)   
             layout = [
@@ -149,7 +156,7 @@ def createClient(server_host, server_port):
             picwindow['-IMAGE-'].update(data=image)
             picwindow.read()
             
-            
+ #handles sending messages           
 def sendMessages(message):
         initial = "";
         if len(message) >= 1:
@@ -170,14 +177,14 @@ def sendMessages(message):
                 tcp_socket.send(b'message\r\n')
                 rsaFunctions.encrypt(pubKey, message,tcp_socket)
                 
-                
+#helper function that helps send bytes                 
 def sendbytes(fileName, rec_socket, x):
     block = b''
     block += int.to_bytes(len(get_file_block(fileName, x + 1)), 2, 'big')
     block += get_file_block(fileName, x + 1)
     rec_socket.sendto(block, addr)
                 
-            
+#reciever function that runs using a thread. Always looking for new messages             
 def recieveMessages():
     while(True):
         types = tcp_socket.recv(1)
@@ -196,7 +203,8 @@ def recieveMessages():
                             data += recv
                             fulldata += recv
                             if(fulldata.__contains__(b'\r\n\r\n')):
-                                break
+                                break                  
+                     #saves data as a byte array and creates a picture using the info
                     data = data[:-2]
                     arrayData = bytearray(data)
                     imageBytes = b''
@@ -212,6 +220,7 @@ def recieveMessages():
                             byte += tcp_socket.recv(1)
                         byte = byte[:-2]
                         decrypted = rsaFunctions.decrypt(priv, byte)
+                        #writes recieved message to display
                         sg.cprint(
                         f"{serverName} wrote: \n" + decrypted,
                         c=("#ffffff", "#858585"),

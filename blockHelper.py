@@ -7,6 +7,7 @@ TFTP_HOST = 'localhost'
 TFTP_BLOCK_SIZE = 512
 MAX_UDP_PACKET_SIZE = 65536
 
+#determines number of blocks needed to send entire file
 def get_file_block_count(filename):
     """
     Determines the number of TFTP blocks for the given file
@@ -21,7 +22,7 @@ def get_file_block_count(filename):
     except:
         return -1
 
-
+#parses data for current block of data
 def get_file_block(filename, block_number):
     """
     Get the file block data for the given file and block number

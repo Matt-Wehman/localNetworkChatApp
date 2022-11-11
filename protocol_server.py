@@ -20,25 +20,12 @@ def main():
     createServer(SERVER_HOST,SERVER_PORT)
     
 def createServer(listen_port, listen_on):
-    """
-    waits for a connection
-    upon receiving a connection generates public key tuple
-    Send 2 bytes (m) that represent the size in bytes of your modulus n
-    Send the public modulus n using int.to_bytes(n, m, 'big')
-    Send a following '\r\n'
-    Send 2 bytes (m) that represent the size in bytes of your public exponent e
-    Send the public exponent e using int.to_bytes(e, m, 'big')
-    Send a following '\r\n'
-    immediately after receive a message from the client
-    The first 2 bytes (m) represent the size in bytes of the message
-    The message will be followed by a trailing '\r\n'
-    decrypt and print that message
-    send a b'A' then close the connection
-    """
     
+    #creates server guis
     password, server_name = guiControls.startServerGUI()
     layout = [[sg.Text("Waiting for other users...")]]
     waitWindow = sg.Window("Wait", layout, size=(180,90))
+    #creates socket and displays waiting window
     while True:
         waitWindow.read(timeout= 20)
         paddedPass = password.zfill(20)
@@ -47,38 +34,46 @@ def createServer(listen_port, listen_on):
         s.bind(address)
         s.listen(5)
         global c, addr;
+        #accepting connection
         c, addr = s.accept()
         break
-    #create keys
     
+    #creating private and sending public key
     global priv
     priv = rsaFunctions.sendKey(c)
+    #recieving info for and creating public key
     e, n = rsaFunctions.recvKey(c)
     global pubKey
     pubKey = (e,n)    
+    
+    #starting receiving thread
     reciever = threading.Thread(target = recieveMessages)
-    sender = threading.Thread(target = sendMessages)    
+    
+    #recieving password guess
     while(True):
         guess = b''
         for x in range(20):
             guess += c.recv(4)
+            #sending response to password guess
         if rsaFunctions.decrypt(priv,guess) != paddedPass:
             c.send(b'F')
         else:
             c.send(b'A')
             break
     waitWindow.close()
+    #sending server name to client
     c.send(server_name.encode("ascii"))
     c.send(b'\r\n')
     
+    #recieving client name
     global name    
     byte = b''
     while not byte.__contains__(b'\r\n'):
         byte += c.recv(1)
     byte = byte[:-2]
     name = byte.decode("ascii")
-    
-    reciever = threading.Thread(target=recieveMessages)
+
+    #creating large chat gui layout
     layout = [
         [sg.Titlebar("Chat Client")],
         [
@@ -118,14 +113,18 @@ def createServer(listen_port, listen_on):
         ],
     ]
     reciever.start()
+    
+    #instaniating window at setting layout inside it
     global window
     window= sg.Window("", layout, finalize= False)
+    
     while(True):
         event, value = window.read()
         if event in [sg.WIN_CLOSED, "-EXIT-"]:
             window.close()
             break
         if event == "-SEND-":
+            #sending message when sent button is pressed
             initial = sendMessages(value['-INPUT-'])
             if initial != "/image":
                 message = value["-INPUT-"]
@@ -136,6 +135,7 @@ def createServer(listen_port, listen_on):
                 )
             window["-INPUT-"].update("")
         elif event == "-DONE-":
+            #opening recieved message and displaying it
             im = Image.open("cool.png")
             image = ImageTk.PhotoImage(image = im)   
             layout = [
@@ -144,14 +144,17 @@ def createServer(listen_port, listen_on):
             picwindow = sg.Window("epic", layout, margins=(0, 0), finalize=True)
             picwindow['-IMAGE-'].update(data=image)
             picwindow.read()
-
+            
+#handles sending messages
 def sendMessages(message):
         initial = ""
         if len(message) >= 1:
+            #checks to see if the message is a image command
             if(len(message) >= 6):
                 for x in range(6):
                     initial += message[x]
                 if(initial == "/image"):
+                    #creates a drawer object and reads drawn image in chunks
                     drawer.start()
                     c.send(b'image\r\n')
                     blockCount = get_file_block_count("curSentImage.jpg")
@@ -159,6 +162,7 @@ def sendMessages(message):
                         sendbytes("curSentImage.jpg", c,x)
                     c.send(b'\r\n\r\n')
                 else:
+                    #sending a message and encypting it
                     c.sendall(b'message\r\n')
                     rsaFunctions.encrypt(pubKey, message,c)
             else:
@@ -166,13 +170,14 @@ def sendMessages(message):
                 rsaFunctions.encrypt(pubKey, message,c)
         return initial
 
-                
+#helper function that helps send bytes                
 def sendbytes(fileName, rec_socket, x):
     block = b''
     block += int.to_bytes(len(get_file_block(fileName, x + 1)), 2, 'big')
     block += get_file_block(fileName, x + 1)
     rec_socket.sendto(block, addr)
-                
+    
+#reciever function that runs using a thread. Always looking for new messages                
 def recieveMessages():
     while(True):
         types = c.recv(1)
@@ -192,6 +197,7 @@ def recieveMessages():
                             fulldata += recv
                             if(fulldata.__contains__(b'\r\n\r\n')):
                                 break
+                    #saves data as a byte array and creates a picture using the info
                     data = data[:-2]
                     arrayData = bytearray(data)
                     imageBytes = b''
@@ -207,10 +213,11 @@ def recieveMessages():
                             byte += c.recv(1)
                         byte = byte[:-2]
                         decrypted = rsaFunctions.decrypt(priv, byte)
+                        #writes recieved message to display
                         sg.cprint(
                         f"{name} wrote: \n" + decrypted,
                         c=("#ffffff", "#858585"),
-                        justification="l",  # left / right,
+                        justification="l",
             )
                         data = b''
                         break
