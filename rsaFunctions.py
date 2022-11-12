@@ -9,7 +9,7 @@ def encrypt(pubKey, message, tcp_socket):
     for c in message:
         encrypted += "{0:04x}".format(apply_key(pubKey, ord(c)))
     size = encrypted.encode().__sizeof__()
-    tcp_socket.sendall(int.to_bytes(size,2,'big'))
+    tcp_socket.sendall(int.to_bytes(size,2,'big') + b'\r\n')
     tcp_socket.send(encrypted.encode())
     tcp_socket.send(b'\r\n')
         

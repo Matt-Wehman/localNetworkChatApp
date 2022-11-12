@@ -5,7 +5,7 @@ import rsaFunctions
 import guiControls
 PUBLIC_EXPONENT = 17;
 SERVER_HOST = 12100
-SERVER_PORT = "10.108.86.143"
+SERVER_PORT = "localhost"
 import os
 import io
 import PySimpleGUI as sg

@@ -13,7 +13,7 @@ import drawer;
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 PUBLIC_EXPONENT = 17
 SERVER_HOST = 12100
-SERVER_PORT = "10.108.86.160"
+SERVER_PORT = "localhost"
 
 def main():
     """Provide the user with a variety of encryption-related actions"""
