@@ -5,7 +5,7 @@ import rsaFunctions
 import guiControls
 PUBLIC_EXPONENT = 17;
 SERVER_HOST = 12100
-SERVER_PORT = "localhost"
+SERVER_PORT = "10.108.86.143"
 import os
 import io
 import PySimpleGUI as sg
@@ -215,6 +215,7 @@ def recieveMessages():
                     break
                 elif types == b'message\r\n':
                         #recieve message
+                        size = tcp_socket.recv(4)
                         byte = b''
                         while not byte.__contains__(b'\r\n'):
                             byte += tcp_socket.recv(1)

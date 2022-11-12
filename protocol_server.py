@@ -11,9 +11,9 @@ from blockHelper import *
 import drawer;
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-PUBLIC_EXPONENT = 17;
+PUBLIC_EXPONENT = 17
 SERVER_HOST = 12100
-SERVER_PORT = "localhost"
+SERVER_PORT = "10.108.86.160"
 
 def main():
     """Provide the user with a variety of encryption-related actions"""
@@ -208,6 +208,7 @@ def recieveMessages():
                     break
                 elif types == b'message\r\n':
                         #recieve message
+                        size = c.recv(4)
                         byte = b''
                         while not byte.__contains__(b'\r\n'):
                             byte += c.recv(1)
