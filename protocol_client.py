@@ -215,7 +215,6 @@ def recieveMessages():
                     break
                 elif types == b'message\r\n':
                         #recieve message
-                        size = tcp_socket.recv(4)
                         byte = b''
                         while not byte.__contains__(b'\r\n'):
                             byte += tcp_socket.recv(1)
